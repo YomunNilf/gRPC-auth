@@ -3,7 +3,7 @@ module sso
 go 1.25.3
 
 require (
-	github.com/YomunNilf/gRPC-auth v0.0.0-20251122061301-a332fef2baf5
+	github.com/YomunNilf/gRPC-auth v0.0.2
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	google.golang.org/grpc v1.77.0
 )
@@ -19,3 +19,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	olympos.io/encoding/edn v0.0.0-20201019073823-d3554ca0b0a3 // indirect
 )
+
+replace github.com/YomunNilf/gRPC-auth => ../protos
