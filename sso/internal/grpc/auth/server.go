@@ -2,8 +2,9 @@ package auth
 
 import (
 	"context"
-	"go/token"
-	"os/user"
+	"errors"
+	authsvc "sso/internal/services/auth"
+	"sso/internal/storage"
 
 	ssov1 "github.com/YomunNilf/gRPC-auth/gen/go/sso"
 	"google.golang.org/grpc"
@@ -25,7 +26,7 @@ type Auth interface {
 		password string,
 	) (userID int64, err error)
 
-	isAdmin(
+	IsAdmin(
 		ctx context.Context,
 		userID int64,
 	) (bool, error)
@@ -57,8 +58,12 @@ func (s *ServerAPI) Login(ctx context.Context, req *ssov1.LoginRequest) (*ssov1.
 		return nil, status.Error(codes.InvalidArgument, "app_id is required")
 	}
 
-	token, err := s.auth.Login(ctx, req.GetEmail(), req.GetPassword(), int(req.GetAppId()));
-	if err != nil{
+	token, err := s.auth.Login(ctx, req.GetEmail(), req.GetPassword(), int(req.GetAppId()))
+	if err != nil {
+		if errors.Is(err, authsvc.ErrInvalidCredentials) {
+			return nil, status.Error(codes.InvalidArgument, "invalid email or password")
+		}
+
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
@@ -72,12 +77,16 @@ func (s *ServerAPI) IsAdmin(ctx context.Context, req *ssov1.IsAdminRequest) (*ss
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")
 	}
 
-	is_admin, err := s.auth.isAdmin(ctx, req.UserId)
+	is_admin, err := s.auth.IsAdmin(ctx, req.UserId)
 	if err != nil {
+		if errors.Is(err, storage.ErrAppNotFound) {
+			return nil, status.Error(codes.NotFound, "app not found")
+		}
+
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
-	return  &ssov1.IsAdminResponse{
+	return &ssov1.IsAdminResponse{
 		IsAdmin: is_admin,
 	}, nil
 }
@@ -92,11 +101,15 @@ func (s *ServerAPI) Register(ctx context.Context, req *ssov1.RegisterRequest) (*
 	}
 
 	userID, err := s.auth.RegisterNewUser(ctx, req.GetEmail(), req.GetPassword())
-	if err != nil{
+	if err != nil {
+		if errors.Is(err, storage.ErrUserExists) {
+			return nil, status.Error(codes.AlreadyExists, "user already exists")
+		}
+
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
-	return  &ssov1.RegisterResponse{
+	return &ssov1.RegisterResponse{
 		UserId: userID,
 	}, nil
 }

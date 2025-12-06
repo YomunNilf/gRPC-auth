@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"crypto/internal/fips140/check"
 	"errors"
 	"fmt"
 	"log/slog"
